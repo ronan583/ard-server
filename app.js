@@ -1,13 +1,13 @@
 const http = require('http');
 const express = require('express');
 const app = express();
+const PORT = process.env.PORT || 8080;
 
 // app.use(express.static.apply("public"));
 const serverPort = PORT;
 const server = http.createServer(app);
 const WebSocket = require('ws');
 
-const PORT = process.env.PORT || 8080;
 
 const wss = new WebSocket.Server({ server });
 
