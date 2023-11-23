@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple WebSocket Client</title>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // 创建一个新的WebSocket。
+    var ws = new WebSocket('wss://ard-server-2374411dd7c6.herokuapp.com/');
+    
+    // 连接打开时触发
+    ws.onopen = function() {
+        console.log('Connected to the WebSocket server.');
+    };
+    
+    // 接收到消息时触发
+    ws.onmessage = function(event) {
+        var log = document.getElementById('log');
+        log.innerHTML += event.data + '<br>';
+    };
+    
+    // 连接关闭时触发
+    ws.onclose = function(event) {
+        console.log('Disconnected from the WebSocket server.');
+    };
+
+    // 发送消息到服务器
+    document.getElementById('send').onclick = function() {
+        var message = document.getElementById('message').value;
+        ws.send(message);
+    };
+});
+</script>
+</head>
+<body>
+    <h1>Simple WebSocket Client</h1>
+    <input type="text" id="message" placeholder="Type a message...">
+    <button id="send">Send Message</button>
+    <div id="log"></div>
+</body>
+</html>
