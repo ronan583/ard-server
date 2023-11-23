@@ -8,6 +8,7 @@ const clients = new Set();
 
 wss.on('connection', function connection(ws) {
   clients.add(ws);
+  console.log("Connected!");
   ws.on('message', function incoming(message) {
     console.log(message);
     clients.forEach(client => {
@@ -18,6 +19,7 @@ wss.on('connection', function connection(ws) {
   });
 
   ws.on('close', function () {
+    console.log("Closed!")
     clients.delete(ws);
   });
 });
