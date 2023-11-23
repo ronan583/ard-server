@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/ronan583/ard-server#readme",
   "dependencies": {
+    "express": "^4.18.2",
     "ws": "^8.14.2"
   }
 }

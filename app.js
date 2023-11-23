@@ -1,3 +1,7 @@
+const express = require('express');
+const app = express();
+const http = require('http');
+
 const WebSocket = require('ws');
 
 const PORT = process.env.PORT || 8080;
@@ -5,6 +9,11 @@ const PORT = process.env.PORT || 8080;
 const wss = new WebSocket.Server({ port: PORT });
 
 const clients = new Set();
+
+app.get('/', (req, res) => {
+  res.write(`<h1>Socket IO Start on Port : ${PORT}</h1>`);
+  res.end();
+});
 
 wss.on('connection', function connection(ws) {
   clients.add(ws);
