@@ -18,3 +18,5 @@ wss.on('connection', function connection(ws) {
     clients.delete(ws);
   });
 });
+
+console.log("running");
