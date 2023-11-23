@@ -9,6 +9,7 @@ const clients = new Set();
 wss.on('connection', function connection(ws) {
   clients.add(ws);
   console.log("Connected!");
+  ws.send('Welcome to the WebSocket server!');
   ws.on('message', function incoming(message) {
     console.log(message);
     clients.forEach(client => {
