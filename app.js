@@ -186,7 +186,7 @@ wss.on("connection", function connection(ws) {
       //   dataLine.rg_fl,
       // ]);
       //await fs.appendFile(`${milkingName}.csv`, csvLine + '\n');
-      // await storage.insertData(dataLine);
+      await storage.insertData(dataLine);
       console.log("Inserted data: ", dataLine);
     } catch (err) {
       console.error("Error writing to file", err);
@@ -237,7 +237,7 @@ function getRG(r, g) {
 async function main() {
   try {
     console.log(`WebSocket server is running on port ${PORT}`);
-    // await storage.open();
+    await storage.open();
   } catch (err) {}
 }
 main();
