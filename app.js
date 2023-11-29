@@ -50,9 +50,9 @@ wss.on("connection", function connection(ws) {
     try {
       const jsonData = JSON.parse(data);
       const now = new Date();
-      const formattedDate = `${now.getDate()}/${
+      const formattedDate = `${now.getFullYear()}-${
         now.getMonth() + 1
-      }/${now.getFullYear()}`;
+      }-${now.getDate()}`;
       const formattedTime = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
       const adc = jsonData.adc;
       const rgbArr = [];
