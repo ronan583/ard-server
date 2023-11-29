@@ -54,9 +54,9 @@ class MilkingStorage {
   constructor() {
     this.pool = new Pool({
       connectionString: process.env.DATABASE_URL || 'postgresql://postgres:admin@localhost/sensor_db',
-      // ssl: {
-      //   rejectUnauthorized: false,
-      // },
+      ssl: {
+        rejectUnauthorized: true,
+      },
     });
   }
 
