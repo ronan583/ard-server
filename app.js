@@ -10,11 +10,13 @@ app.use(
   })
 );
 
-const router = express.Router();
-router.get("/names", getAllNames);
-router.get("/csv/:name", getCsvByName);
+// const router = express.Router();
+// router.get("/names", getAllNames);
+// router.get("/csv/:name", getCsvByName);
 
-app.use("/api", router);
+// app.use("/api", router);
+app.get("/api/names", getAllNames);
+app.get("/api/csv/:name", getCsvByName);
 app.listen(8080, () => {
   console.log("http on 8080");
 });
