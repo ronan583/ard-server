@@ -266,12 +266,15 @@ async function getAllNames(req, res) {
 
 async function getCsvByName(req, res) {
   const nameToLookup = req.params.name;
+  console.log("request name to look: ", nameToLookup);
   try {
     const records = await storage.getAllRecordsByName(nameToLookup);
+    console.log("records is: ", records);
     if (records.length == 0) {
       return res.status(400).json({ error: "no records found" });
     }
     const filePath = await generateCSV(records, nameToLookup);
+    console.log("file path: ", filePath);
     res.download(filePath, (err) => {
       if (err) {
         console.error("File download fialed: ", err);
