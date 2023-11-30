@@ -26,7 +26,7 @@ const WebSocket = require("ws");
 
 const fs = require("fs").promises;
 const os = require("os");
-const BigNumber = require("bignumber.js");
+const BigNumber = require("bignumber");
 const path = require("path");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 const csvHeader = require("./constant.js");
