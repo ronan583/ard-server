@@ -1,8 +1,10 @@
+const SENSOR_DATA_TABLE = 'sensor_data';
+
 const { Pool } = require("pg");
 const debug = require("debug")("milking-storage:db");
 
 const MILKING_DATA_DDL = `
-  CREATE TABLE IF NOT EXISTS sensor_data (
+  CREATE TABLE IF NOT EXISTS ${SENSOR_DATA_TABLE} (
     id SERIAL PRIMARY KEY,
     name TEXT,
     date DATE,
@@ -35,7 +37,7 @@ const MILKING_DATA_DDL = `
 `;
 
 const MILKING_DATA_INSERT = `
-    INSERT INTO sensor_data (
+    INSERT INTO ${SENSOR_DATA_TABLE} (
       name, date, time, adc0, adc1, adc2, adc3,
       r_br, g_br, b_br, ir1_br, ir2_br,
       r_bl, g_bl, b_bl, ir1_bl, ir2_bl,
@@ -77,11 +79,31 @@ class MilkingStorage {
     debug('Inserting sensor data', data);
     await this.pool.query(MILKING_DATA_INSERT, Object.values(data));
   }
+
+  async getAllMilkingNames(order) {
+    const query = `SELECT DISTINCT name FROM ${SENSOR_DATA_TABLE} ORDER BY name ${order}`;
+    try {
+      const result = await this.pool.query(query);
+      return result.rows;
+    } catch(err) {
+      throw err;
+    }
+  }
+
+  async getAllRecordsByName(name) {
+    const query = `SELECT date, time, adc0, adc1, adc2, adc3,
+    r_br, g_br, b_br, ir1_br, ir2_br,
+    r_bl, g_bl, b_bl, ir1_bl, ir2_bl,
+    r_fr, g_fr, b_fr, ir1_fr, ir2_fr,
+    r_fl, g_fl, b_fl, ir1_fl, ir2_fl FROM ${SENSOR_DATA_TABLE} WHERE name = $1 ORDER BY time ASC;`
+    const {rows} = await this.pool.query(query, [name]);
+    return rows;
+  }
 }
 
 
 const MILKING_DATA_DDL_OLD = `
-  CREATE TABLE IF NOT EXISTS sensor_data (
+  CREATE TABLE IF NOT EXISTS ${SENSOR_DATA_TABLE} (
     id SERIAL PRIMARY KEY,
     name TEXT,
     date DATE,
@@ -119,7 +141,7 @@ const MILKING_DATA_DDL_OLD = `
 `;
 
 const MILKING_DATA_INSERT_OLD = `
-    INSERT INTO sensor_data (
+    INSERT INTO ${SENSOR_DATA_TABLE} (
       name, date, time, adc0, adc1, adc2, adc3,
       r_br, g_br, b_br, ir1_br, ir2_br,
       r_bl, g_bl, b_bl, ir1_bl, ir2_bl,

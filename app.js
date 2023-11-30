@@ -1,7 +1,23 @@
 const http = require("http");
+const cors = require("cors");
 const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 8765;
+
+app.use(
+  cors({
+    origin: "*",
+  })
+);
+
+const router = express.Router();
+router.get("/names", getAllNames);
+router.get("/csv/:name", getCsvByName);
+
+app.use("/api", router);
+app.listen(8080, () => {
+  console.log("http on 8080");
+});
 
 // app.use(express.static.apply("public"));
 const serverPort = PORT;
@@ -9,7 +25,11 @@ const server = http.createServer(app);
 const WebSocket = require("ws");
 
 const fs = require("fs").promises;
+const os = require("os");
+const BigNumber = require("bignumber.js");
+const path = require("path");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
+const csvHeader = require("./constant.js");
 const MilkingSessionManager = require("./milkingSession.js");
 
 const wss = new WebSocket.Server({ server });
@@ -228,15 +248,73 @@ function getMsgFrom(rgArr) {
 
 function getRG(r, g) {
   if (r != EMPTY_VALUE && g != EMPTY_VALUE) {
-    return parseFloat((r / g).toFixed(2));
+    const result = new BigNumber(r).dividedBy(g).toFixed(2);
+    return parseFloat(result);
   } else {
     return EMPTY_VALUE;
   }
 }
 
+async function getAllNames(req, res) {
+  try {
+    const names = await storage.getAllMilkingNames("ASC");
+    res.status(200).json(names);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function getCsvByName(req, res) {
+  const nameToLookup = req.params.name;
+  try {
+    const records = await storage.getAllRecordsByName(nameToLookup);
+    if (records.length == 0) {
+      return res.status(400).json({ error: "no records found" });
+    }
+    const filePath = await generateCSV(records, nameToLookup);
+    res.download(filePath, (err) => {
+      if (err) {
+        console.error("File download fialed: ", err);
+      }
+      fs.unlink(filePath, () => {});
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function generateCSV(data, name) {
+  const filePath = path.join(os.tmpdir(), `${name}.csv`);
+  console.log(filePath);
+  const writer = createCsvWriter({
+    path: filePath,
+    header: csvHeader,
+  });
+  data = data.map(({ id, name, date, ...item }) => {
+    const rg_br = getRG(item.r_br, item.g_br);
+    const rg_bl = getRG(item.r_bl, item.g_bl);
+    const rg_fr = getRG(item.r_fr, item.g_fr);
+    const rg_fl = getRG(item.r_fl, item.g_fl);
+    const msg = getMsgFrom([rg_br, rg_bl, rg_fr, rg_fl]);
+    date = new Date(date);
+    date = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+    return {
+      ...item,
+      date,
+      rg_br,
+      rg_bl,
+      rg_fr,
+      rg_fl,
+      msg,
+    };
+  });
+  await writer.writeRecords(data);
+  return filePath;
+}
+
 async function main() {
   try {
-    console.log(`WebSocket server is running on port ${PORT}`);
+    console.log(`WebSocket server is running on  ${PORT}`);
     await storage.open();
   } catch (err) {}
 }

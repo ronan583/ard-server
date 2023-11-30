@@ -19,8 +19,12 @@
   },
   "homepage": "https://github.com/ronan583/ard-server#readme",
   "dependencies": {
+    "bignumber": "^1.1.0",
+    "cors": "^2.8.5",
     "csv-writer": "^1.6.0",
     "express": "^4.18.2",
+    "os": "^0.1.2",
+    "path": "^0.12.7",
     "pg": "^8.11.3",
     "ws": "^8.14.2"
   }
