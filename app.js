@@ -28,7 +28,7 @@ const WebSocket = require("ws");
 
 const fs = require("fs").promises;
 const os = require("os");
-const BigNumber = require("bignumber");
+const Decimal = require("decimal.js");
 const path = require("path");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 const csvHeader = require("./constant.js");
@@ -250,8 +250,8 @@ function getMsgFrom(rgArr) {
 
 function getRG(r, g) {
   if (r != EMPTY_VALUE && g != EMPTY_VALUE) {
-    const result = new BigNumber(r).dividedBy(g).toFixed(2);
-    return parseFloat(result);
+    const result = new Decimal(r).dividedBy(g).toFixed(2);
+    return result;
   } else {
     return EMPTY_VALUE;
   }
