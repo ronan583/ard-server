@@ -1,4 +1,4 @@
-const SENSOR_DATA_TABLE = 'sensor_data';
+const SENSOR_DATA_TABLE = "sensor_data";
 
 const { Pool } = require("pg");
 const debug = require("debug")("milking-storage:db");
@@ -55,7 +55,9 @@ const MILKING_DATA_INSERT = `
 class MilkingStorage {
   constructor() {
     this.pool = new Pool({
-      connectionString: process.env.DATABASE_URL || 'postgresql://postgres:admin@localhost/sensor_db',
+      connectionString:
+        process.env.DATABASE_URL ||
+        "postgresql://postgres:admin@localhost/sensor_db",
       ssl: {
         rejectUnauthorized: false,
       },
@@ -67,25 +69,29 @@ class MilkingStorage {
     try {
       await client.query(MILKING_DATA_DDL);
       console.log("Sensor data database initialized.");
-    } catch (err){
+    } catch (err) {
       debug(err);
-    } 
-    finally {
+    } finally {
       client.release();
     }
   }
 
   async insertData(data) {
-    debug('Inserting sensor data', data);
+    debug("Inserting sensor data", data);
     await this.pool.query(MILKING_DATA_INSERT, Object.values(data));
   }
 
-  async getAllMilkingNames(order) {
-    const query = `SELECT DISTINCT name FROM ${SENSOR_DATA_TABLE} ORDER BY name ${order}`;
+  async getAllMilkingNames(order, startDate, endDate) {
+    // const query = `SELECT DISTINCT name FROM ${SENSOR_DATA_TABLE} ORDER BY name ${order}`;
+    let query = `SELECT DISTINCT name FROM ${SENSOR_DATA_TABLE} `;
+    if (startDate && endDate) {
+      query += `WHERE date BETWEEN '${startDate}' AND '${endDate}' `;
+    }
+    query += `ORDER BY name ${order}`;
     try {
       const result = await this.pool.query(query);
       return result.rows;
-    } catch(err) {
+    } catch (err) {
       throw err;
     }
   }
@@ -95,12 +101,11 @@ class MilkingStorage {
     r_br, g_br, b_br, ir1_br, ir2_br,
     r_bl, g_bl, b_bl, ir1_bl, ir2_bl,
     r_fr, g_fr, b_fr, ir1_fr, ir2_fr,
-    r_fl, g_fl, b_fl, ir1_fl, ir2_fl FROM ${SENSOR_DATA_TABLE} WHERE name = $1 ORDER BY time ASC;`
-    const {rows} = await this.pool.query(query, [name]);
+    r_fl, g_fl, b_fl, ir1_fl, ir2_fl FROM ${SENSOR_DATA_TABLE} WHERE name = $1 ORDER BY time ASC;`;
+    const { rows } = await this.pool.query(query, [name]);
     return rows;
   }
 }
-
 
 const MILKING_DATA_DDL_OLD = `
   CREATE TABLE IF NOT EXISTS ${SENSOR_DATA_TABLE} (

@@ -259,11 +259,28 @@ function getRG(r, g) {
 
 async function getAllNames(req, res) {
   try {
-    const names = await storage.getAllMilkingNames("ASC");
+    let names;
+    let todayFormattedString = getFormattedDateString(new Date());
+    if (req.query.startDate) {
+      names = await storage.getAllMilkingNames(
+        "ASC",
+        req.query.startDate,
+        todayFormattedString
+      );
+    } else {
+      names = await storage.getAllMilkingNames("ASC");
+    }
     res.status(200).json(names);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+}
+
+function getFormattedDateString(dateObj) {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const date = String(dateObj.getDate()).padStart(2, "0");
+  return `${year}-${month}-${date}`;
 }
 
 async function getCsvByName(req, res) {
@@ -271,12 +288,10 @@ async function getCsvByName(req, res) {
   console.log("request name to look: ", nameToLookup);
   try {
     const records = await storage.getAllRecordsByName(nameToLookup);
-    console.log("records is: ", records);
     if (records.length == 0) {
       return res.status(400).json({ error: "no records found" });
     }
     const filePath = await generateCSV(records, nameToLookup);
-    console.log("file path: ", filePath);
     res.download(filePath, (err) => {
       if (err) {
         console.error("File download fialed: ", err);
@@ -289,12 +304,12 @@ async function getCsvByName(req, res) {
 }
 
 async function generateCSV(data, name) {
-  const filePath = path.join(os.tmpdir(), `${name}.csv`);
-  console.log(filePath);
+  const filePath = path.join(os.tmpdir(), `${transferWeirdDate(name)}.csv`);
   const writer = createCsvWriter({
     path: filePath,
     header: csvHeader,
   });
+  let withBlood = false;
   data = data.map(({ id, name, date, ...item }) => {
     const rg_br = getRG(item.r_br, item.g_br);
     const rg_bl = getRG(item.r_bl, item.g_bl);
@@ -315,6 +330,14 @@ async function generateCSV(data, name) {
   });
   await writer.writeRecords(data);
   return filePath;
+}
+
+// dd-m-yyyy-h-min
+function transferWeirdDate(weirdDate) {
+  const arr = weirdDate.split("_");
+  return `${arr[0].padStart(2, "0")}_${arr[1].padStart(2, "0")}_${
+    arr[2]
+  }_${arr[3].padStart(2, "0")}_${arr[4].padStart(2, "0")}`;
 }
 
 async function main() {

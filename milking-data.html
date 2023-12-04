@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>-Sensor Data-</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0px;
+        padding: 0px;
+        box-sizing: border-box;
+      }
+      #data-container {
+        margin-top: 20px;
+      }
+      .header {
+        background-color: #f2f2f2;
+        padding: 10px;
+        text-align: center;
+      }
+      .content {
+        display: flex;
+      }
+      .left-side {
+        flex: 80%;
+        padding: 20px;
+        background-color: #e9e9e9;
+      }
+      .right-side {
+        flex: 20%;
+        padding: 20px;
+        background-color: #d9d9d9;
+      }
+      .calender {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        text-align: center;
+        /* grid-gap: 10px; */
+      }
+      .day {
+        font-weight: bold;
+      }
+      .day-grid {
+        height: 230px;
+        overflow: auto;
+        padding: 5px;
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        box-sizing: border-box;
+      }
+      .grid-date {
+        font-size: small;
+        margin-bottom: 10px;
+      }
+      .grid-links {
+        display: flex;
+        flex-wrap: wrap;
+      }
+      .grid-links a {
+        flex: 1 1 50%;
+        box-sizing: border-box;
+        margin-top: 2px;
+        text-decoration: none;
+        font-size: small;
+        font-weight: bold;
+        color: #3081d0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>All records</h1>
+    </div>
+    <div class="content">
+      <div class="left-side">
+        <div id="calender" class="calender"></div>
+        <div id="data-container"></div>
+        <button onclick="onTest()">Test button</button>
+      </div>
+      <div class="right-side"></div>
+    </div>
+    <div class="footer"></div>
+    <script>
+      const ADDRESS = "http://10.10.22.34:8080";
+      // const ADDRESS = "http://ard-server-2374411dd7c6.herokuapp.com";
+      async function fetchMilkingNames(startDate) {
+        try {
+          let url = ADDRESS + "/api/names";
+          if (startDate) {
+            const params = new URLSearchParams({
+              startDate,
+            });
+            url += `?${params.toString()}`;
+          }
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP error, status code: ${response.status}`);
+          }
+          const data = await response.json();
+          return data;
+        } catch (error) {
+          console.error("fetching data error: ", error);
+        }
+      }
+
+      function fillContainer(data) {
+        const container = document.getElementById("data-container");
+        container.innerHTML = "";
+        data.forEach((item) => {
+          const link = document.createElement("a");
+          link.textContent = item.name;
+          link.href = `#`;
+          link.onclick = () => fetchFile(item.name);
+          container.appendChild(link);
+          container.appendChild(document.createElement("br"));
+        });
+      }
+
+      function fillCalender(nameDateData) {
+        nameDateData.sort((a, b) => {
+          return a.date.localeCompare(b.date);
+        });
+        nameDateData.forEach((value, index) => {
+          const formatDateString = value.date.split("-").slice(0, 3).join("-");
+          const dayGrid = document.querySelector(
+            `.grid-links[data-date="${formatDateString}"]`
+          );
+          const link = document.createElement("a");
+          link.textContent = transferWeirdDate(value.name)
+            .split("-")
+            .slice(3)
+            .join(":");
+          link.href = "#";
+          link.onclick = () => fetchFile(value.name);
+          dayGrid.appendChild(link);
+        });
+      }
+
+      function fetchFile(name) {
+        console.log(name);
+        fetch(ADDRESS + `/api/csv/${name}`)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Error: ${response.statusText}`);
+            }
+            return response.blob();
+          })
+          .then((blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = `sensor_data_${transferWeirdDate2(name)}.csv`;    //ignore the download attribute, so the name is assigned by server
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+          })
+          .catch((err) => console.log(err));
+      }
+
+      function createCalender() {
+        const calender = document.getElementById("calender");
+        let today = new Date();
+        let startDay = new Date();
+        let count = today.getDay() + 15;
+        startDay.setDate(today.getDate() - today.getDay() - 14);
+        const dateRange = {
+          startDate: getFormattedDateString(startDay),
+          // endDate: getFormattedDateString(today),
+        };
+        for (let i = 0; i < count; i++) {
+          let dayGrid = document.createElement("div");
+          dayGrid.className = "day-grid";
+
+          // append date head in day grid
+          let gridDate = document.createElement("div");
+          gridDate.className = "grid-date";
+          gridDate.innerText = `${getMonthName(
+            startDay.getMonth()
+          )}-${startDay.getDate()}`;
+          dayGrid.appendChild(gridDate);
+          //append links div
+          let gridLinks = document.createElement("div");
+          gridLinks.className = "grid-links";
+          gridLinks.setAttribute(
+            "data-date",
+            `${startDay.getFullYear()}-${
+              startDay.getMonth() + 1
+            }-${startDay.getDate()}`
+          );
+          dayGrid.appendChild(gridLinks);
+
+          calender.appendChild(dayGrid);
+          startDay.setDate(startDay.getDate() + 1);
+        }
+        return dateRange;
+      }
+
+      function getFormattedDateString(dateObj) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const date = String(dateObj.getDate()).padStart(2, "0");
+        return `${year}-${month}-${date}`;
+      }
+      async function main() {
+        const dateRange = createCalender();
+        let data = await fetchMilkingNames(dateRange.startDate);
+        data = data.map((item) => {
+          return { ...item, date: transferWeirdDate(item.name) };
+        });
+        fillCalender(data);
+      }
+      document.addEventListener("DOMContentLoaded", main);
+
+      // dd-m-yyyy-h-min
+      function transferWeirdDate(weirdDate) {
+        const arr = weirdDate.split("_");
+        return `${arr[2]}-${arr[1].padStart(2, "0")}-${arr[0].padStart(
+          2,
+          "0"
+        )}-${arr[3].padStart(2, "0")}-${arr[4].padStart(2, "0")}`;
+      }
+
+      // dd-m-yyyy-h-min
+      function transferWeirdDate2(weirdDate) {
+        const arr = weirdDate.split("_");
+        return `${arr[0].padStart(2, "0")}_${arr[1].padStart(2, "0")}_${
+          arr[2]
+        }_${arr[3].padStart(2, "0")}_${arr[4].padStart(2, "0")}`;
+      }
+
+      function getMonthName(month) {
+        const arr = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        return arr[month];
+      }
+      async function onTest() {
+        console.log("-----");
+        await fetchMilkingNames("2023-12-29");
+      }
+    </script>
+  </body>
+</html>
