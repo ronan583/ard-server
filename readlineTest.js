@@ -1,4 +1,6 @@
 const readline = require("readline");
+const app = require("./app.js");
+const mathjs = require("mathjs");
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -8,8 +10,8 @@ const rl = readline.createInterface({
 const testCommand = {
   timezone: () => {
     const transferTime = (now) => {
-      console.log(typeof(now));
-      if(typeof(now) == 'string'){
+      console.log(typeof now);
+      if (typeof now == "string") {
         return now;
       }
       return `${now.getFullYear()}-${
@@ -27,7 +29,11 @@ const testCommand = {
     console.log(transferTime(utcNow));
     console.log(transferTime(nzNowNow));
   },
-  test1: () => {},
+  sts: () => {
+    app.getStatisticByDate({
+      query: { startDate: "2023-11-28", endDate: "2023-11-29" },
+    });
+  },
 };
 
 const readTest = () => {
@@ -41,4 +47,8 @@ const readTest = () => {
   });
 };
 
-readTest();
+const justTest = () => {
+  testCommand["sts"]();
+};
+
+justTest();

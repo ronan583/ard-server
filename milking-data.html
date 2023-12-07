@@ -42,7 +42,7 @@
         font-weight: bold;
       }
       .day-grid {
-        height: 230px;
+        height: 260px;
         overflow: auto;
         padding: 5px;
         background-color: #f0f0f0;
@@ -66,11 +66,20 @@
         font-weight: bold;
         color: #3081d0;
       }
+      .right-side a {
+        margin-top: 10px;
+        display: block;
+        box-sizing: border-box;
+        text-decoration: none;
+        font-size: medium;
+        font-weight: bold;
+        color: #3081d0;
+      }
     </style>
   </head>
   <body>
     <div class="header">
-      <h1>All records</h1>
+      <h3>All records</h3>
     </div>
     <div class="content">
       <div class="left-side">
@@ -78,11 +87,14 @@
         <div id="data-container"></div>
         <button onclick="onTest()">Test button</button>
       </div>
-      <div class="right-side"></div>
+      <div class="right-side" id="right-side">
+        <h5>Batch milking metrics download</h5>
+      </div>
     </div>
     <div class="footer"></div>
     <script>
       const ADDRESS = "http://10.10.22.34:8080";
+      const WEEK_NUMBER = 3;
       // const ADDRESS = "http://ard-server-2374411dd7c6.herokuapp.com";
       async function fetchMilkingNames(startDate) {
         try {
@@ -104,18 +116,18 @@
         }
       }
 
-      function fillContainer(data) {
-        const container = document.getElementById("data-container");
-        container.innerHTML = "";
-        data.forEach((item) => {
-          const link = document.createElement("a");
-          link.textContent = item.name;
-          link.href = `#`;
-          link.onclick = () => fetchFile(item.name);
-          container.appendChild(link);
-          container.appendChild(document.createElement("br"));
-        });
-      }
+      // function fillContainer(data) {
+      //   const container = document.getElementById("data-container");
+      //   container.innerHTML = "";
+      //   data.forEach((item) => {
+      //     const link = document.createElement("a");
+      //     link.textContent = item.name;
+      //     link.href = `#`;
+      //     link.onclick = () => fetchFile(item.name);
+      //     container.appendChild(link);
+      //     container.appendChild(document.createElement("br"));
+      //   });
+      // }
 
       function fillCalender(nameDateData) {
         nameDateData.sort((a, b) => {
@@ -123,18 +135,122 @@
         });
         nameDateData.forEach((value, index) => {
           const formatDateString = value.date.split("-").slice(0, 3).join("-");
+          console.log(formatDateString);
           const dayGrid = document.querySelector(
             `.grid-links[data-date="${formatDateString}"]`
           );
-          const link = document.createElement("a");
-          link.textContent = transferWeirdDate(value.name)
-            .split("-")
-            .slice(3)
-            .join(":");
-          link.href = "#";
-          link.onclick = () => fetchFile(value.name);
-          dayGrid.appendChild(link);
+          if (dayGrid) {
+            const link = document.createElement("a");
+            link.textContent = transferWeirdDate(value.name)
+              .split("-")
+              .slice(3)
+              .join(":");
+            link.href = "#";
+            link.onclick = () => fetchFile(value.name);
+            dayGrid.appendChild(link);
+          }
         });
+      }
+
+      function fillStatisticRecord(nameDateData) {
+        let today = new Date();
+        let startDay1 = new Date();
+        let startDay2 = new Date();
+        let startDay3 = new Date();
+        let sevenAgo = new Date();
+        startDay1.setDate(
+          today.getDate() - today.getDay() - (WEEK_NUMBER - 1) * 7
+        );
+        startDay2.setDate(
+          today.getDate() - today.getDay() - (WEEK_NUMBER - 2) * 7
+        );
+        startDay3.setDate(
+          today.getDate() - today.getDay() - (WEEK_NUMBER - 3) * 7
+        );
+        sevenAgo.setDate(today.getDate() - 6);
+        const startDayArr = [startDay1, startDay2, startDay3, today];
+        const daynum1 = stringDateToNumber(
+          getFormattedDateString(startDay1),
+          "-"
+        );
+        const daynum2 = stringDateToNumber(
+          getFormattedDateString(startDay2),
+          "-"
+        );
+        const daynum3 = stringDateToNumber(
+          getFormattedDateString(startDay3),
+          "-"
+        );
+        const todaynum = stringDateToNumber(getFormattedDateString(today), "-");
+        const sevenAgoNum = stringDateToNumber(
+          getFormattedDateString(sevenAgo),
+          "-"
+        );
+        const dateNumArr = [daynum1, daynum2, daynum3, todaynum];
+        let weekMilkingNum = [];
+        for (let i = 0; i < WEEK_NUMBER + 1; i++) {
+          weekMilkingNum.push(0);
+        }
+        console.log(weekMilkingNum);
+        nameDateData.forEach((data) => {
+          let dataDateNum = stringDateToNumber(
+            data.date.split("-").slice(0, 3).join("-"),
+            "-"
+          );
+          for (let i = 0; i < WEEK_NUMBER; i++) {
+            if (
+              dataDateNum >= dateNumArr[i] &&
+              dataDateNum < dateNumArr[i + 1]
+            ) {
+              weekMilkingNum[i]++;
+            }
+          }
+          if (dataDateNum >= sevenAgoNum && dataDateNum < todaynum) {
+            weekMilkingNum[WEEK_NUMBER]++;
+          }
+        });
+        const sideDiv = document.querySelector(`#right-side`);
+        for (let i = 0; i < weekMilkingNum.length; i++) {
+          const link = document.createElement("a");
+          const num = weekMilkingNum[i];
+          if (num < 1) {
+            continue;
+          }
+          let endDay = new Date(startDayArr[i + 1]);
+          if (i < 2) {
+            endDay.setDate(endDay.getDate() - 1);
+          }
+          link.textContent = `${dateNumArr[i]}-${stringDateToNumber(
+            getFormattedDateString(endDay),
+            "-"
+          )}`;
+          link.setAttribute(
+            "name",
+            `${getFormattedDateString(startDayArr[i])}_${getFormattedDateString(
+              endDay
+            )}`
+          );
+          link.href = "#";
+          link.onclick = () =>
+            fetchStatisticFile(
+              `${getFormattedDateString(
+                startDayArr[i]
+              )}_${getFormattedDateString(endDay)}`
+            );
+          sideDiv.appendChild(link);
+        }
+        if (weekMilkingNum[WEEK_NUMBER] > 0) {
+          const link = document.createElement("a");
+          link.textContent = "> Download past 7 days'";
+          link.href = "#";
+          link.onclick = () =>
+            fetchStatisticFile(
+              `${getFormattedDateString(sevenAgo)}_${getFormattedDateString(
+                today
+              )}`
+            );
+          sideDiv.appendChild(link);
+        }
       }
 
       function fetchFile(name) {
@@ -151,7 +267,7 @@
             const a = document.createElement("a");
             a.style.display = "none";
             a.href = url;
-            a.download = `sensor_data_${transferWeirdDate2(name)}.csv`;    //ignore the download attribute, so the name is assigned by server
+            a.download = `sensor_data_${transferWeirdDate2(name)}.csv`; //ignore the download attribute, so the name is assigned by server
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
@@ -159,12 +275,43 @@
           .catch((err) => console.log(err));
       }
 
+      async function fetchStatisticFile(datename) {
+        try {
+          console.log(datename);
+          let url = ADDRESS + "/api/statistic";
+          if (datename) {
+            const params = new URLSearchParams({
+              startDate: datename.split("_")[0],
+              endDate: datename.split("_")[1],
+            });
+            url += `?${params.toString()}`;
+          }
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+          }
+          const blob = await response.blob();
+          const urlBlob = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.style.display = "none";
+          a.href = urlBlob;
+          a.download = `batches_statistics_${datename}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(urlBlob);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
       function createCalender() {
         const calender = document.getElementById("calender");
         let today = new Date();
         let startDay = new Date();
-        let count = today.getDay() + 15;
-        startDay.setDate(today.getDate() - today.getDay() - 14);
+        let count = today.getDay() + ((WEEK_NUMBER - 1) * 7 + 1);
+        startDay.setDate(
+          today.getDate() - today.getDay() - (WEEK_NUMBER - 1) * 7
+        );
         const dateRange = {
           startDate: getFormattedDateString(startDay),
           // endDate: getFormattedDateString(today),
@@ -185,9 +332,9 @@
           gridLinks.className = "grid-links";
           gridLinks.setAttribute(
             "data-date",
-            `${startDay.getFullYear()}-${
+            `${startDay.getFullYear()}-${String(
               startDay.getMonth() + 1
-            }-${startDay.getDate()}`
+            ).padStart(2, "0")}-${String(startDay.getDate()).padStart(2, "0")}`
           );
           dayGrid.appendChild(gridLinks);
 
@@ -197,19 +344,32 @@
         return dateRange;
       }
 
-      function getFormattedDateString(dateObj) {
+      function getFormattedDateString(dateObj, type) {
         const year = dateObj.getFullYear();
         const month = String(dateObj.getMonth() + 1).padStart(2, "0");
         const date = String(dateObj.getDate()).padStart(2, "0");
-        return `${year}-${month}-${date}`;
+        const hour = String(dateObj.getHours()).padStart(2, "0");
+        const minute = String(dateObj.getMinutes()).padStart(2, "0");
+        if (!type) {
+          return `${year}-${month}-${date}`;
+        } else if ((type = "ymdhm")) {
+          return `${year}-${month}-${date}-${hour}-${minute}`;
+        }
       }
+
+      function stringDateToNumber(dateStr, delimiter) {
+        const regex = new RegExp(delimiter, "g");
+        return parseInt(dateStr.replace(regex, ""), 10);
+      }
+
       async function main() {
         const dateRange = createCalender();
-        let data = await fetchMilkingNames(dateRange.startDate);
-        data = data.map((item) => {
+        let milkingsRecords = await fetchMilkingNames(dateRange.startDate);
+        milkingsRecords = milkingsRecords.map((item) => {
           return { ...item, date: transferWeirdDate(item.name) };
         });
-        fillCalender(data);
+        fillCalender(milkingsRecords);
+        fillStatisticRecord(milkingsRecords);
       }
       document.addEventListener("DOMContentLoaded", main);
 
@@ -248,8 +408,23 @@
         return arr[month];
       }
       async function onTest() {
-        console.log("-----");
-        await fetchMilkingNames("2023-12-29");
+        try {
+          // let url = ADDRESS + "/api/statistic";
+          // const params = new URLSearchParams({
+          //   startDate: "2023-11-28",
+          //   endDate: "2023-11-28",
+          // });
+          // url += `?${params.toString()}`;
+          // await fetch(url);
+          // if (!response.ok) {
+          //   throw new Error(`HTTP error, status code: ${response.status}`);
+          // }
+          await fetchStatisticFile("2023-11-28_2023-11-28");
+          // const data = await response.json();
+          // return data;
+        } catch (error) {
+          console.error("fetching data error: ", error);
+        }
       }
     </script>
   </body>

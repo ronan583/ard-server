@@ -1,4 +1,4 @@
-const csvHeader = [
+const sensorCsvHeader = [
   { id: "date", title: "Date" },
   { id: "time", title: "Time" },
   { id: "adc0", title: "ADC1" },
@@ -32,4 +32,26 @@ const csvHeader = [
   { id: "msg", title: "Message" },
 ];
 
-module.exports = csvHeader;
+const statisticCsvHeader = [
+  { id: "name", title: "Name" },
+  { id: "startTime", title: "Start Time" },
+  { id: "stopTime", title: "Stop Time" },
+  { id: "maxRgBr", title: "Max R/G BR" },
+  { id: "minRgBr", title: "Min R/G BR" },
+  { id: "avgRgBr", title: "Avg R/G BR" },
+  { id: "sigmaRgBr", title: "Std R/G BR" },
+  { id: "maxRgBl", title: "Max R/G BL" },
+  { id: "minRgBl", title: "Min R/G BL" },
+  { id: "avgRgBl", title: "Avg R/G BL" },
+  { id: "sigmaRgBl", title: "Std R/G BL" },
+  { id: "maxRgFr", title: "Max R/G FR" },
+  { id: "minRgFr", title: "Min R/G FR" },
+  { id: "avgRgFr", title: "Avg R/G FR" },
+  { id: "sigmaRgFr", title: "Std R/G FR" },
+  { id: "maxRgFl", title: "Max R/G FL" },
+  { id: "minRgFl", title: "Min R/G FL" },
+  { id: "avgRgFl", title: "Avg R/G FL" },
+  { id: "sigmaRgFl", title: "Std R/G FL" },
+];
+
+module.exports = {sensorCsvHeader, statisticCsvHeader};

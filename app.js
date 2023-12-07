@@ -17,6 +17,7 @@ app.use(
 // app.use("/api", router);
 app.get("/api/names", getAllNames);
 app.get("/api/csv/:name", getCsvByName);
+app.get("/api/statistic", getStatisticByDate);
 app.listen(8080, () => {
   console.log("http on 8080");
 });
@@ -29,9 +30,10 @@ const WebSocket = require("ws");
 const fs = require("fs").promises;
 const os = require("os");
 const Decimal = require("decimal.js");
+const mathjs = require("mathjs");
 const path = require("path");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
-const csvHeader = require("./constant.js");
+const { sensorCsvHeader, statisticCsvHeader } = require("./constant.js");
 const MilkingSessionManager = require("./milkingSession.js");
 
 const wss = new WebSocket.Server({ server });
@@ -259,21 +261,182 @@ function getRG(r, g) {
 
 async function getAllNames(req, res) {
   try {
-    let names;
+    let results;
     let todayFormattedString = getFormattedDateString(new Date());
     if (req.query.startDate) {
-      names = await storage.getAllMilkingNames(
-        "ASC",
-        req.query.startDate,
-        todayFormattedString
-      );
+      if (req.query.endDate) {
+        results = await queryNamesByDate(
+          req.query.startDate,
+          req.query.endDate
+        );
+      } else {
+        results = await queryNamesByDate(
+          req.query.startDate,
+          todayFormattedString
+        );
+      }
     } else {
-      names = await storage.getAllMilkingNames("ASC");
+      results = await queryNamesByDate();
     }
-    res.status(200).json(names);
+    res.status(200).json(results);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+}
+
+async function queryNamesByDate(startDateString, endDateString) {
+  try {
+    let results;
+    if (startDateString && endDateString) {
+      results = await storage.getAllMilkingNames(
+        "ASC",
+        startDateString,
+        endDateString
+      );
+    } else {
+      results = await storage.getAllMilkingNames("ASC");
+    }
+    return results;
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+async function getStatisticListByDate() {}
+
+async function getStatisticByDate(req, res) {
+  try {
+    const nameResults = await queryNamesByDate(
+      req.query.startDate,
+      req.query.endDate
+    );
+    let csvData = [];
+    let fileNameDate =
+      req.query.startDate.replaceAll("-", "") +
+      "-" +
+      req.query.endDate.replaceAll("-", "");
+    console.log(fileNameDate);
+    for (const item of nameResults) {
+      // if (fileNameDate === "") {
+      //   fileNameDate = transferWeirdDate(item.name);
+      // }
+      const records = await storage.getAllRecordsByName(item.name);
+      const len = records.length;
+      let startTime = records[0].time;
+      let stopTime = records[len - 1].time;
+      const rgBrArray = records.reduce((prevs, cur) => {
+        let ratio = getRG(cur.r_br, cur.g_br);
+        if (ratio !== EMPTY_VALUE) {
+          prevs.push(ratio);
+        }
+        return prevs;
+      }, []);
+      const rgBlArray = records.reduce((prevs, cur) => {
+        let ratio = getRG(cur.r_bl, cur.g_bl);
+        if (ratio !== EMPTY_VALUE) {
+          prevs.push(ratio);
+        }
+        return prevs;
+      }, []);
+      const rgFrArray = records.reduce((prevs, cur) => {
+        let ratio = getRG(cur.r_fr, cur.g_fr);
+        if (ratio !== EMPTY_VALUE) {
+          prevs.push(ratio);
+        }
+        return prevs;
+      }, []);
+      const rgFlArray = records.reduce((prevs, cur) => {
+        let ratio = getRG(cur.r_fl, cur.g_fl);
+        if (ratio !== EMPTY_VALUE) {
+          prevs.push(ratio);
+        }
+        return prevs;
+      }, []);
+      const [
+        maxRgBr,
+        maxRgBl,
+        maxRgFr,
+        maxRgFl,
+        minRgBr,
+        minRgBl,
+        minRgFr,
+        minRgFl,
+        avgRgBr,
+        avgRgBl,
+        avgRgFr,
+        avgRgFl,
+        sigmaRgBr,
+        sigmaRgBl,
+        sigmaRgFr,
+        sigmaRgFl,
+      ] = [
+        rgBrArray.length > 0 ? mathjs.max(rgBrArray) : -1,
+        rgBlArray.length > 0 ? mathjs.max(rgBlArray) : -1,
+        rgFrArray.length > 0 ? mathjs.max(rgFrArray) : -1,
+        rgFlArray.length > 0 ? mathjs.max(rgFlArray) : -1,
+        rgBrArray.length > 0 ? mathjs.min(rgBrArray) : -1,
+        rgBlArray.length > 0 ? mathjs.min(rgBlArray) : -1,
+        rgFrArray.length > 0 ? mathjs.min(rgFrArray) : -1,
+        rgFlArray.length > 0 ? mathjs.min(rgFlArray) : -1,
+        rgBrArray.length > 0 ? mathjs.mean(rgBrArray).toFixed(2) : -1,
+        rgBlArray.length > 0 ? mathjs.mean(rgBlArray).toFixed(2) : -1,
+        rgFrArray.length > 0 ? mathjs.mean(rgFrArray).toFixed(2) : -1,
+        rgFlArray.length > 0 ? mathjs.mean(rgFlArray).toFixed(2) : -1,
+        rgBrArray.length > 0 ? mathjs.std(rgBrArray).toFixed(2) : -1,
+        rgBlArray.length > 0 ? mathjs.std(rgBlArray).toFixed(2) : -1,
+        rgFrArray.length > 0 ? mathjs.std(rgFrArray).toFixed(2) : -1,
+        rgFlArray.length > 0 ? mathjs.std(rgFlArray).toFixed(2) : -1,
+      ];
+      let csvLine = {
+        name: transferWeirdDate(item.name),
+        startTime,
+        stopTime,
+        maxRgBr,
+        maxRgBl,
+        maxRgFr,
+        maxRgFl,
+        minRgBr,
+        minRgBl,
+        minRgFr,
+        minRgFl,
+        avgRgBr,
+        avgRgBl,
+        avgRgFr,
+        avgRgFl,
+        sigmaRgBr,
+        sigmaRgBl,
+        sigmaRgFr,
+        sigmaRgFl,
+      };
+      // console.log(csvLine);
+      csvData.push(csvLine);
+    }
+    const filePath = await writeCsv(
+      statisticCsvHeader,
+      csvData,
+      `batches_statistics_${fileNameDate}`
+    );
+    res.download(filePath, (err) => {
+      if (err) {
+        console.error("File download failed: ", err);
+      }
+      fs.unlink(filePath, () => {});
+    });
+  } catch (err) {
+    console.log(err);
+  }
+}
+
+async function writeCsv(header, data, name) {
+  const filePath = path.join(os.tmpdir(), `${name}.csv`);
+  const writer = createCsvWriter({
+    path: filePath,
+    header,
+    encoding: "utf8",
+  });
+  await writer.writeRecords(data);
+  console.log("-------", header);
+  return filePath;
 }
 
 function getFormattedDateString(dateObj) {
@@ -285,7 +448,6 @@ function getFormattedDateString(dateObj) {
 
 async function getCsvByName(req, res) {
   const nameToLookup = req.params.name;
-  console.log("request name to look: ", nameToLookup);
   try {
     const records = await storage.getAllRecordsByName(nameToLookup);
     if (records.length == 0) {
@@ -294,7 +456,7 @@ async function getCsvByName(req, res) {
     const filePath = await generateCSV(records, nameToLookup);
     res.download(filePath, (err) => {
       if (err) {
-        console.error("File download fialed: ", err);
+        console.error("File download failed: ", err);
       }
       fs.unlink(filePath, () => {});
     });
@@ -304,32 +466,37 @@ async function getCsvByName(req, res) {
 }
 
 async function generateCSV(data, name) {
-  const filePath = path.join(os.tmpdir(), `${transferWeirdDate(name)}.csv`);
-  const writer = createCsvWriter({
-    path: filePath,
-    header: csvHeader,
-  });
-  let withBlood = false;
-  data = data.map(({ id, name, date, ...item }) => {
-    const rg_br = getRG(item.r_br, item.g_br);
-    const rg_bl = getRG(item.r_bl, item.g_bl);
-    const rg_fr = getRG(item.r_fr, item.g_fr);
-    const rg_fl = getRG(item.r_fl, item.g_fl);
-    const msg = getMsgFrom([rg_br, rg_bl, rg_fr, rg_fl]);
-    date = new Date(date);
-    date = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
-    return {
-      ...item,
-      date,
-      rg_br,
-      rg_bl,
-      rg_fr,
-      rg_fl,
-      msg,
-    };
-  });
-  await writer.writeRecords(data);
-  return filePath;
+  try {
+    const filePath = path.join(os.tmpdir(), `${transferWeirdDate(name)}.csv`);
+    const writer = createCsvWriter({
+      path: filePath,
+      header: sensorCsvHeader,
+    });
+    let withBlood = false;
+    data = data.map(({ id, name, date, ...item }) => {
+      const rg_br = getRG(item.r_br, item.g_br);
+      const rg_bl = getRG(item.r_bl, item.g_bl);
+      const rg_fr = getRG(item.r_fr, item.g_fr);
+      const rg_fl = getRG(item.r_fl, item.g_fl);
+      const msg = getMsgFrom([rg_br, rg_bl, rg_fr, rg_fl]);
+      date = new Date(date);
+      date = `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+      return {
+        ...item,
+        date,
+        rg_br,
+        rg_bl,
+        rg_fr,
+        rg_fl,
+        msg,
+      };
+    });
+    console.log(filePath);
+    await writer.writeRecords(data);
+    return filePath;
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 // dd-m-yyyy-h-min
@@ -347,3 +514,6 @@ async function main() {
   } catch (err) {}
 }
 main();
+module.exports = {
+  getStatisticByDate,
+};
