@@ -34,6 +34,9 @@ const testCommand = {
       query: { startDate: "2023-11-28", endDate: "2023-11-29" },
     });
   },
+  tg: () => {
+    console.log(app.calculateTimeGap("09:26:28", "10:26:42"));
+  },
 };
 
 const readTest = () => {
@@ -48,7 +51,8 @@ const readTest = () => {
 };
 
 const justTest = () => {
-  testCommand["sts"]();
+  // testCommand["sts"]();
+  testCommand["tg"]();
 };
 
 justTest();

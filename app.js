@@ -33,6 +33,11 @@ const Decimal = require("decimal.js");
 const mathjs = require("mathjs");
 const path = require("path");
 const createCsvWriter = require("csv-writer").createObjectCsvWriter;
+
+const dayjs = require("dayjs");
+const duration = require("dayjs/plugin/duration");
+dayjs.extend(duration);
+
 const { sensorCsvHeader, statisticCsvHeader } = require("./constant.js");
 const MilkingSessionManager = require("./milkingSession.js");
 
@@ -55,6 +60,8 @@ let milkingName = "";
 let onMilking = false;
 
 const EMPTY_VALUE = -1;
+const AVG_RG_THRESHOLD = 800;
+const DURATION_THRESHOLD = 20;
 
 wss.on("connection", function connection(ws) {
   clients.add(ws);
@@ -315,15 +322,17 @@ async function getStatisticByDate(req, res) {
       req.query.startDate.replaceAll("-", "") +
       "-" +
       req.query.endDate.replaceAll("-", "");
-    console.log(fileNameDate);
+    console.log(nameResults);
     for (const item of nameResults) {
       // if (fileNameDate === "") {
       //   fileNameDate = transferWeirdDate(item.name);
       // }
       const records = await storage.getAllRecordsByName(item.name);
       const len = records.length;
-      let startTime = records[0].time;
-      let stopTime = records[len - 1].time;
+      const startTime = records[0].time;
+      const stopTime = records[len - 1].time;
+      const duration = calculateTimeGap(startTime, stopTime).diffStr;
+      const durationSec = calculateTimeGap(startTime, stopTime).diffSec;
       const rgBrArray = records.reduce((prevs, cur) => {
         let ratio = getRG(cur.r_br, cur.g_br);
         if (ratio !== EMPTY_VALUE) {
@@ -352,7 +361,27 @@ async function getStatisticByDate(req, res) {
         }
         return prevs;
       }, []);
+      const rAndGArray = records.reduce((prevs, cur) => {
+        const positionArr = [
+          "r_br",
+          "r_bl",
+          "r_fr",
+          "r_fl",
+          "g_br",
+          "g_bl",
+          "g_fr",
+          "g_fl",
+        ];
+        for (let i = 0; i < positionArr.length; i++) {
+          const pos = positionArr[i];
+          if (cur[pos] !== EMPTY_VALUE) {
+            prevs.push(cur[pos]);
+          }
+        }
+        return prevs;
+      }, []);
       const [
+        avgRG,
         maxRgBr,
         maxRgBl,
         maxRgFr,
@@ -370,6 +399,7 @@ async function getStatisticByDate(req, res) {
         sigmaRgFr,
         sigmaRgFl,
       ] = [
+        rAndGArray.length > 0 ? mathjs.mean(rAndGArray).toFixed(2) : -1,
         rgBrArray.length > 0 ? mathjs.max(rgBrArray) : -1,
         rgBlArray.length > 0 ? mathjs.max(rgBlArray) : -1,
         rgFrArray.length > 0 ? mathjs.max(rgFrArray) : -1,
@@ -387,10 +417,16 @@ async function getStatisticByDate(req, res) {
         rgFrArray.length > 0 ? mathjs.std(rgFrArray).toFixed(2) : -1,
         rgFlArray.length > 0 ? mathjs.std(rgFlArray).toFixed(2) : -1,
       ];
+      const type =
+        avgRG < AVG_RG_THRESHOLD || durationSec <= DURATION_THRESHOLD ? "Not-Milking" : "Milking";
+
       let csvLine = {
         name: transferWeirdDate(item.name),
         startTime,
         stopTime,
+        duration,
+        avgRG,
+        type,
         maxRgBr,
         maxRgBl,
         maxRgFr,
@@ -434,8 +470,8 @@ async function writeCsv(header, data, name) {
     header,
     encoding: "utf8",
   });
+  data.sort()
   await writer.writeRecords(data);
-  console.log("-------", header);
   return filePath;
 }
 
@@ -444,6 +480,29 @@ function getFormattedDateString(dateObj) {
   const month = String(dateObj.getMonth() + 1).padStart(2, "0");
   const date = String(dateObj.getDate()).padStart(2, "0");
   return `${year}-${month}-${date}`;
+}
+
+//hh:mm:ss
+function calculateTimeGap(startTime, stopTime) {
+  const start = dayjs(`2023-01-01T${startTime}`);
+  const end = dayjs(`2023-01-01T${stopTime}`);
+
+  const diff = end.diff(start);
+
+  const diffDuration = dayjs.duration(diff);
+
+  const hours = String(diffDuration.hours()).padStart(2, "0");
+  const minutes = String(diffDuration.minutes()).padStart(2, "0");
+  const seconds = String(diffDuration.seconds()).padStart(2, "0");
+
+  let formatString = "";
+  if (diffDuration.hours() > 0) {
+    formatString = `${hours}:${minutes}:${seconds}`;
+  } else {
+    formatString = `${minutes}:${seconds}`;
+  }
+
+  return { diffSec: diffDuration.asSeconds(), diffStr: formatString };
 }
 
 async function getCsvByName(req, res) {
@@ -491,7 +550,6 @@ async function generateCSV(data, name) {
         msg,
       };
     });
-    console.log(filePath);
     await writer.writeRecords(data);
     return filePath;
   } catch (error) {
@@ -506,6 +564,13 @@ function transferWeirdDate(weirdDate) {
     arr[2]
   }_${arr[3].padStart(2, "0")}_${arr[4].padStart(2, "0")}`;
 }
+function transferWeirdDate2(weirdDate) {
+  const arr = weirdDate.split("_");
+  return `${arr[2]}-${arr[1].padStart(2, "0")}-${arr[0].padStart(
+    2,
+    "0"
+  )}-${arr[3].padStart(2, "0")}-${arr[4].padStart(2, "0")}`;
+}
 
 async function main() {
   try {
@@ -516,4 +581,5 @@ async function main() {
 main();
 module.exports = {
   getStatisticByDate,
+  calculateTimeGap,
 };
