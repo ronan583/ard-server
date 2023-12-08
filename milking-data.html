@@ -101,7 +101,7 @@
       <div class="left-side">
         <div id="calender" class="calender"></div>
         <div id="data-container"></div>
-        <button onclick="onTest()">Test button</button>
+        <!-- <button onclick="onTest()">Test button</button> -->
       </div>
       <div class="right-side" id="right-side">
         <h5>Batch milking metrics download</h5>
@@ -109,8 +109,8 @@
     </div>
     <div class="footer"></div>
     <script>
-      const ADDRESS = "http://10.10.22.34:8080";
-      // const ADDRESS = "http://ard-server-2374411dd7c6.herokuapp.com";
+      // const ADDRESS = "http://10.10.22.34:8080";
+      const ADDRESS = "http://ard-server-2374411dd7c6.herokuapp.com";
       const WEEK_NUMBER = 3;
       async function fetchMilkingNames(startDate) {
         try {
