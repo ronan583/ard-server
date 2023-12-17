@@ -42,7 +42,11 @@ const retriveRgArr = (records, pos) => {
     return prevs;
   }, []);
 };
-
+/**
+ * @param {*} records 
+ * @param {string} name milking name (date)
+ * @returns Nam/StartTime/StopTime/Type/Duration/Avg...Max...
+ */
 const createRecordsMetrics = (records, name) => {
   const len = records.length;
   const startTime = records[0].time;
@@ -144,7 +148,11 @@ const createRecordsMetrics = (records, name) => {
     sigmaRgFl,
   };
 };
-
+/**
+ * generate rg ratio and message when fetching sensor data file
+ * @param {*} records 
+ * @returns red/green ratio and info message for this line 
+ */
 const processRgMsg = (records) => {
   return records.map(({ id, name, date, ...item }) => {
     const rg_br = getRG(item.r_br, item.g_br);
@@ -176,7 +184,9 @@ const writeCsv = async (header, data, name) => {
   await writer.writeRecords(data);
   return filePath;
 };
-
+/**
+ * Retrieves milking record names for a specified date range.
+ */
 const getAllNames = async (req, res) => {
   try {
     let results;
@@ -202,7 +212,9 @@ const getAllNames = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
-
+/**
+ * Retrieves statistical data for a specified date range.
+ */
 const getStatisticByDate = async (req, res) => {
   try {
     const nameResults = await queryNamesByDate(
@@ -236,7 +248,9 @@ const getStatisticByDate = async (req, res) => {
     console.log(err);
   }
 };
-
+/**
+ * Retrieves a CSV file with the specified name.
+ */
 const getCsvByName = async (req, res) => {
   const nameToLookup = req.params.name;
   try {

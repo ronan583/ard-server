@@ -164,7 +164,7 @@
           console.log(error);
         }
       }
-
+      
       function createCalender() {
         const calender = document.getElementById("calender");
         let today = new Date();
@@ -247,8 +247,11 @@
           }
         });
       }
-
+      /**
+       * render the area on the right
+      */
       function fillStatisticRecord(nameDateData) {
+        // 3 weeks in total, check if any record exists in each week
         let today = new Date();
         let startDay1 = new Date();
         let startDay2 = new Date();
@@ -283,9 +286,10 @@
           "-"
         );
         const dateNumArr = [daynum1, daynum2, daynum3, todaynum];
+        // the number of milking records in: the week before last week/ last week/ this week/ past 7 days
         let weekMilkingNum = [];
         for (let i = 0; i < WEEK_NUMBER + 1; i++) {
-          weekMilkingNum.push(0);
+          weekMilkingNum.push(0);   // initialize with 0
         }
         console.log(weekMilkingNum);
         nameDateData.forEach((data) => {
@@ -310,6 +314,7 @@
         for (let i = 0; i < WEEK_NUMBER; i++) {
           const link = document.createElement("a");
           const num = weekMilkingNum[i];
+          // check if any record exists
           if (num < 1) {
             continue;
           }

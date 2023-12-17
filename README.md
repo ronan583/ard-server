@@ -1,4 +1,4 @@
-# Milking Data Web Service
+# Milking Data Web Application
 
 ## Version and Remote Repository
 
