@@ -109,9 +109,102 @@
     </div>
     <div class="footer"></div>
     <script>
+      // const ADDRESS = "http://localhost:8080";
       // const ADDRESS = "http://10.10.22.34:8080";
       const ADDRESS = "http://ard-server-2374411dd7c6.herokuapp.com";
       const WEEK_NUMBER = 3;
+
+      async function fetchFile(name) {
+        console.log(name);
+        fetch(ADDRESS + `/api/csv/${name}`)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`Error: ${response.statusText}`);
+            }
+            return response.blob();
+          })
+          .then((blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.style.display = "none";
+            a.href = url;
+            a.download = `sensor_data_${transferWeirdDate2(name)}.csv`; //ignore the download attribute, so the name is assigned by server
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+          })
+          .catch((err) => console.log(err));
+      }
+
+      async function fetchStatisticFile(datename) {
+        try {
+          console.log(datename);
+          let url = ADDRESS + "/api/statistic";
+          if (datename) {
+            const params = new URLSearchParams({
+              startDate: datename.split("_")[0],
+              endDate: datename.split("_")[1],
+            });
+            url += `?${params.toString()}`;
+          }
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`Error: ${response.statusText}`);
+          }
+          const blob = await response.blob();
+          const urlBlob = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.style.display = "none";
+          a.href = urlBlob;
+          a.download = `batches_statistics_${datename}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(urlBlob);
+        } catch (error) {
+          console.log(error);
+        }
+      }
+
+      function createCalender() {
+        const calender = document.getElementById("calender");
+        let today = new Date();
+        let startDay = new Date();
+        let count = today.getDay() + ((WEEK_NUMBER - 1) * 7 + 1);
+        startDay.setDate(
+          today.getDate() - today.getDay() - (WEEK_NUMBER - 1) * 7
+        );
+        const dateRange = {
+          startDate: getFormattedDateString(startDay),
+          // endDate: getFormattedDateString(today),
+        };
+        for (let i = 0; i < count; i++) {
+          let dayGrid = document.createElement("div");
+          dayGrid.className = "day-grid";
+
+          // append date head in day grid
+          let gridDate = document.createElement("div");
+          gridDate.className = "grid-date";
+          gridDate.innerText = `${getMonthName(
+            startDay.getMonth()
+          )}-${startDay.getDate()}`;
+          dayGrid.appendChild(gridDate);
+          //append links div
+          let gridLinks = document.createElement("div");
+          gridLinks.className = "grid-links";
+          gridLinks.setAttribute(
+            "data-date",
+            `${startDay.getFullYear()}-${String(
+              startDay.getMonth() + 1
+            ).padStart(2, "0")}-${String(startDay.getDate()).padStart(2, "0")}`
+          );
+          dayGrid.appendChild(gridLinks);
+
+          calender.appendChild(dayGrid);
+          startDay.setDate(startDay.getDate() + 1);
+        }
+        return dateRange;
+      }
+
       async function fetchMilkingNames(startDate) {
         try {
           let url = ADDRESS + "/api/names";
@@ -131,19 +224,6 @@
           console.error("fetching data error: ", error);
         }
       }
-
-      // function fillContainer(data) {
-      //   const container = document.getElementById("data-container");
-      //   container.innerHTML = "";
-      //   data.forEach((item) => {
-      //     const link = document.createElement("a");
-      //     link.textContent = item.name;
-      //     link.href = `#`;
-      //     link.onclick = () => fetchFile(item.name);
-      //     container.appendChild(link);
-      //     container.appendChild(document.createElement("br"));
-      //   });
-      // }
 
       function fillCalender(nameDateData) {
         nameDateData.sort((a, b) => {
@@ -270,115 +350,6 @@
         }
       }
 
-      function fetchFile(name) {
-        console.log(name);
-        fetch(ADDRESS + `/api/csv/${name}`)
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`Error: ${response.statusText}`);
-            }
-            return response.blob();
-          })
-          .then((blob) => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.style.display = "none";
-            a.href = url;
-            a.download = `sensor_data_${transferWeirdDate2(name)}.csv`; //ignore the download attribute, so the name is assigned by server
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-          })
-          .catch((err) => console.log(err));
-      }
-
-      async function fetchStatisticFile(datename) {
-        try {
-          console.log(datename);
-          let url = ADDRESS + "/api/statistic";
-          if (datename) {
-            const params = new URLSearchParams({
-              startDate: datename.split("_")[0],
-              endDate: datename.split("_")[1],
-            });
-            url += `?${params.toString()}`;
-          }
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error(`Error: ${response.statusText}`);
-          }
-          const blob = await response.blob();
-          const urlBlob = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.style.display = "none";
-          a.href = urlBlob;
-          a.download = `batches_statistics_${datename}.csv`;
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(urlBlob);
-        } catch (error) {
-          console.log(error);
-        }
-      }
-
-      function createCalender() {
-        const calender = document.getElementById("calender");
-        let today = new Date();
-        let startDay = new Date();
-        let count = today.getDay() + ((WEEK_NUMBER - 1) * 7 + 1);
-        startDay.setDate(
-          today.getDate() - today.getDay() - (WEEK_NUMBER - 1) * 7
-        );
-        const dateRange = {
-          startDate: getFormattedDateString(startDay),
-          // endDate: getFormattedDateString(today),
-        };
-        for (let i = 0; i < count; i++) {
-          let dayGrid = document.createElement("div");
-          dayGrid.className = "day-grid";
-
-          // append date head in day grid
-          let gridDate = document.createElement("div");
-          gridDate.className = "grid-date";
-          gridDate.innerText = `${getMonthName(
-            startDay.getMonth()
-          )}-${startDay.getDate()}`;
-          dayGrid.appendChild(gridDate);
-          //append links div
-          let gridLinks = document.createElement("div");
-          gridLinks.className = "grid-links";
-          gridLinks.setAttribute(
-            "data-date",
-            `${startDay.getFullYear()}-${String(
-              startDay.getMonth() + 1
-            ).padStart(2, "0")}-${String(startDay.getDate()).padStart(2, "0")}`
-          );
-          dayGrid.appendChild(gridLinks);
-
-          calender.appendChild(dayGrid);
-          startDay.setDate(startDay.getDate() + 1);
-        }
-        return dateRange;
-      }
-
-      function getFormattedDateString(dateObj, type) {
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-        const date = String(dateObj.getDate()).padStart(2, "0");
-        const hour = String(dateObj.getHours()).padStart(2, "0");
-        const minute = String(dateObj.getMinutes()).padStart(2, "0");
-        if (!type) {
-          return `${year}-${month}-${date}`;
-        } else if ((type = "ymdhm")) {
-          return `${year}-${month}-${date}-${hour}-${minute}`;
-        }
-      }
-
-      function stringDateToNumber(dateStr, delimiter) {
-        const regex = new RegExp(delimiter, "g");
-        return parseInt(dateStr.replace(regex, ""), 10);
-      }
-
       async function main() {
         const dateRange = createCalender();
         let milkingsRecords = await fetchMilkingNames(dateRange.startDate);
@@ -390,6 +361,7 @@
       }
       document.addEventListener("DOMContentLoaded", main);
 
+      //--------------------------Util functions---------------------------
       // dd-m-yyyy-h-min
       function transferWeirdDate(weirdDate) {
         const arr = weirdDate.split("_");
@@ -424,21 +396,28 @@
         ];
         return arr[month];
       }
+
+      function getFormattedDateString(dateObj, type) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const date = String(dateObj.getDate()).padStart(2, "0");
+        const hour = String(dateObj.getHours()).padStart(2, "0");
+        const minute = String(dateObj.getMinutes()).padStart(2, "0");
+        if (!type) {
+          return `${year}-${month}-${date}`;
+        } else if ((type = "ymdhm")) {
+          return `${year}-${month}-${date}-${hour}-${minute}`;
+        }
+      }
+
+      function stringDateToNumber(dateStr, delimiter) {
+        const regex = new RegExp(delimiter, "g");
+        return parseInt(dateStr.replace(regex, ""), 10);
+      }
+
       async function onTest() {
         try {
-          // let url = ADDRESS + "/api/statistic";
-          // const params = new URLSearchParams({
-          //   startDate: "2023-11-28",
-          //   endDate: "2023-11-28",
-          // });
-          // url += `?${params.toString()}`;
-          // await fetch(url);
-          // if (!response.ok) {
-          //   throw new Error(`HTTP error, status code: ${response.status}`);
-          // }
           await fetchStatisticFile("2023-11-28_2023-11-28");
-          // const data = await response.json();
-          // return data;
         } catch (error) {
           console.error("fetching data error: ", error);
         }

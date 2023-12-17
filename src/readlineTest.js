@@ -1,6 +1,5 @@
 const readline = require("readline");
 const app = require("./app.js");
-const mathjs = require("mathjs");
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -8,7 +7,7 @@ const rl = readline.createInterface({
 });
 
 const testCommand = {
-  timezone: () => {
+  tz: () => {
     const transferTime = (now) => {
       console.log(typeof now);
       if (typeof now == "string") {
@@ -39,7 +38,7 @@ const testCommand = {
   },
 };
 
-const readTest = () => {
+const readAndTest = () => {
   rl.question("Enter test input\n", (input) => {
     const test = testCommand[input];
     if (test) {
@@ -51,7 +50,6 @@ const readTest = () => {
 };
 
 const justTest = () => {
-  // testCommand["sts"]();
   testCommand["tg"]();
 };
 

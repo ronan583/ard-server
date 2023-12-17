@@ -57,4 +57,19 @@ const statisticCsvHeader = [
   { id: "sigmaRgFl", title: "Std R/G FL" },
 ];
 
-module.exports = {sensorCsvHeader, statisticCsvHeader};
+const EMPTY_VALUE = -1;
+const BLOOD_THRESHOLD = 1.2; // could be 1.1
+const AVG_RG_THRESHOLD = 800;
+const DURATION_THRESHOLD = 20;
+
+const SENSOR_DATA_TABLE = "sensor_data";
+
+module.exports = {
+  sensorCsvHeader,
+  statisticCsvHeader,
+  EMPTY_VALUE,
+  AVG_RG_THRESHOLD,
+  DURATION_THRESHOLD,
+  BLOOD_THRESHOLD,
+  SENSOR_DATA_TABLE,
+};
